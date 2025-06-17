@@ -24,11 +24,13 @@
 #endregion License Information (GPL v3)
 
 using ShareX.HelpersLib;
-using System;
 using System.ComponentModel;
 using System.Drawing;
 using System.Drawing.Design;
+using System.Drawing.Drawing2D;
 using System.Drawing.Text;
+using System.Linq;
+using System.Windows.Forms;
 
 namespace ShareX.ImageEffectsLib
 {
@@ -82,6 +84,9 @@ namespace ShareX.ImageEffectsLib
 
         [DefaultValue(typeof(Padding), "3, 3, 3, 3")]
         public Padding Padding { get; set; }
+
+        [DefaultValue(false)]
+        public bool UseGradient { get; set; }
 
         public DrawText()
         {
