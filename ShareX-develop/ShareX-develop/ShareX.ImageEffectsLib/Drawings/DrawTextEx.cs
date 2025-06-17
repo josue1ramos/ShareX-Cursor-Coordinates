@@ -1,4 +1,4 @@
-﻿#region License Information (GPL v3)
+#region License Information (GPL v3)
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
@@ -24,14 +24,15 @@
 #endregion License Information (GPL v3)
 
 using ShareX.HelpersLib;
+using System;
 using System.ComponentModel;
 using System.Drawing;
 using System.Drawing.Design;
 using System.Drawing.Drawing2D;
+using System.Drawing.Text;
 
 namespace ShareX.ImageEffectsLib
 {
-    [Description("Text")]
     public class DrawTextEx : ImageEffect
     {
         [DefaultValue("Text"), Editor(typeof(NameParserEditor), typeof(UITypeEditor))]
@@ -68,44 +69,44 @@ namespace ShareX.ImageEffectsLib
             }
         }
 
+        [DefaultValue(TextRenderingHint.SystemDefault), TypeConverter(typeof(EnumProperNameConverter))]
+        public TextRenderingHint TextRenderingMode { get; set; }
+
         [DefaultValue(typeof(Color), "235, 235, 235"), Editor(typeof(MyColorEditor), typeof(UITypeEditor)), TypeConverter(typeof(MyColorConverter))]
         public Color Color { get; set; }
 
-        [DefaultValue(false)]
+        [DefaultValue(true)]
         public bool UseGradient { get; set; }
 
-        [Editor(typeof(GradientEditor), typeof(UITypeEditor))]
         public GradientInfo Gradient { get; set; }
 
         [DefaultValue(false)]
         public bool Outline { get; set; }
 
-        [DefaultValue(5)]
-        public int OutlineSize { get; set; }
-
-        [DefaultValue(typeof(Color), "235, 0, 0"), Editor(typeof(MyColorEditor), typeof(UITypeEditor)), TypeConverter(typeof(MyColorConverter))]
+        [DefaultValue(typeof(Color), "Black"), Editor(typeof(MyColorEditor), typeof(UITypeEditor)), TypeConverter(typeof(MyColorConverter))]
         public Color OutlineColor { get; set; }
 
         [DefaultValue(false)]
         public bool OutlineUseGradient { get; set; }
 
-        [Editor(typeof(GradientEditor), typeof(UITypeEditor))]
         public GradientInfo OutlineGradient { get; set; }
+
+        [DefaultValue(2)]
+        public int OutlineSize { get; set; }
 
         [DefaultValue(false)]
         public bool Shadow { get; set; }
 
-        [DefaultValue(typeof(Point), "0, 5")]
-        public Point ShadowOffset { get; set; }
-
-        [DefaultValue(typeof(Color), "125, 0, 0, 0"), Editor(typeof(MyColorEditor), typeof(UITypeEditor)), TypeConverter(typeof(MyColorConverter))]
+        [DefaultValue(typeof(Color), "Black"), Editor(typeof(MyColorEditor), typeof(UITypeEditor)), TypeConverter(typeof(MyColorConverter))]
         public Color ShadowColor { get; set; }
 
         [DefaultValue(false)]
         public bool ShadowUseGradient { get; set; }
 
-        [Editor(typeof(GradientEditor), typeof(UITypeEditor))]
         public GradientInfo ShadowGradient { get; set; }
+
+        [DefaultValue(typeof(Point), "2, 2")]
+        public Point ShadowOffset { get; set; }
 
         public DrawTextEx()
         {
@@ -157,6 +158,22 @@ namespace ShareX.ImageEffectsLib
                 parser.ImageWidth = bmp.Width;
                 parser.ImageHeight = bmp.Height;
 
+                // Try to get TaskMetadata if available through Tag property
+                if (bmp.Tag is TaskMetadata metadata)
+                {
+                    try
+                    {
+                        parser.MouseX = metadata.GetValue<int>("MouseX");
+                        parser.MouseY = metadata.GetValue<int>("MouseY");
+                    }
+                    catch
+                    {
+                        // If metadata doesn't contain MouseX/MouseY, fallback to 0
+                        parser.MouseX = 0;
+                        parser.MouseY = 0;
+                    }
+                }
+
                 string parsedText = parser.Parse(Text);
 
                 using (Graphics g = Graphics.FromImage(bmp))
@@ -164,6 +181,7 @@ namespace ShareX.ImageEffectsLib
                 {
                     g.SmoothingMode = SmoothingMode.HighQuality;
                     g.PixelOffsetMode = PixelOffsetMode.Half;
+                    g.TextRenderingHint = TextRenderingMode;
 
                     gp.FillMode = FillMode.Winding;
                     float emSize = g.DpiY * font.SizeInPoints / 72;
