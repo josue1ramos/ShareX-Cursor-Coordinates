@@ -22,6 +22,8 @@
 */
 
 #endregion License Information (GPL v3)
+/*and yes sir
+ */
 
 using ShareX.HelpersLib;
 using System.ComponentModel;
