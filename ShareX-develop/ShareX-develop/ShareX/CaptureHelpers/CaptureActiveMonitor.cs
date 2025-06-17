@@ -25,6 +25,7 @@
 
 using ShareX.HelpersLib;
 using System.Drawing;
+using System.Windows.Forms; // Make sure this is included for Cursor.Position
 
 namespace ShareX
 {
@@ -35,6 +36,12 @@ namespace ShareX
             Rectangle rect = CaptureHelpers.GetActiveScreenWorkingArea();
             TaskMetadata metadata = CreateMetadata(rect);
             metadata.Image = TaskHelpers.GetScreenshot(taskSettings).CaptureActiveMonitor();
+
+            // Store mouse cursor position in metadata
+            Point mousePosition = Cursor.Position;
+            metadata.SetValue("MouseX", mousePosition.X);
+            metadata.SetValue("MouseY", mousePosition.Y);
+
             return metadata;
         }
     }
