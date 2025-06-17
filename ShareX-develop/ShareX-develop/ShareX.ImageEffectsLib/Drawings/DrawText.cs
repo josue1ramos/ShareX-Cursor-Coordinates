@@ -23,6 +23,7 @@
 
 #endregion License Information (GPL v3)
 
+using System.Windows.Forms;
 using ShareX.HelpersLib;
 using System;
 using System.ComponentModel;
