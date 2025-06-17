@@ -1,4 +1,4 @@
-﻿#region License Information (GPL v3)
+#region License Information (GPL v3)
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
@@ -24,46 +24,47 @@
 #endregion License Information (GPL v3)
 
 using ShareX.HelpersLib;
+using System;
 using System.ComponentModel;
 using System.Drawing;
 using System.Drawing.Design;
 using System.Drawing.Drawing2D;
 using System.Drawing.Text;
-using System.Linq;
-using System.Windows.Forms;
 
 namespace ShareX.ImageEffectsLib
 {
-    [Description("Text watermark")]
-    public class DrawText : ImageEffect
+    public class DrawTextEx : ImageEffect
     {
-        [DefaultValue("Text watermark"), Editor(typeof(NameParserEditor), typeof(UITypeEditor))]
+        [DefaultValue("Text"), Editor(typeof(NameParserEditor), typeof(UITypeEditor))]
         public string Text { get; set; }
 
-        [DefaultValue(ContentAlignment.BottomRight), TypeConverter(typeof(EnumProperNameConverter))]
+        [DefaultValue(ContentAlignment.TopLeft), TypeConverter(typeof(EnumProperNameConverter))]
         public ContentAlignment Placement { get; set; }
 
-        [DefaultValue(typeof(Point), "5, 5")]
+        [DefaultValue(typeof(Point), "0, 0")]
         public Point Offset { get; set; }
 
-        [DefaultValue(false), Description("If text watermark size bigger than source image then don't draw it.")]
+        [DefaultValue(0)]
+        public int Angle { get; set; }
+
+        [DefaultValue(false), Description("If text size bigger than source image then don't draw it.")]
         public bool AutoHide { get; set; }
 
-        private FontSafe textFontSafe = new FontSafe();
+        private FontSafe fontSafe = new FontSafe();
 
         // Workaround for "System.AccessViolationException: Attempted to read or write protected memory. This is often an indication that other memory is corrupt."
-        [DefaultValue(typeof(Font), "Arial, 11.25pt")]
-        public Font TextFont
+        [DefaultValue(typeof(Font), "Arial, 36pt")]
+        public Font Font
         {
             get
             {
-                return textFontSafe.GetFont();
+                return fontSafe.GetFont();
             }
             set
             {
                 using (value)
                 {
-                    textFontSafe.SetFont(value);
+                    fontSafe.SetFont(value);
                 }
             }
         }
@@ -72,69 +73,71 @@ namespace ShareX.ImageEffectsLib
         public TextRenderingHint TextRenderingMode { get; set; }
 
         [DefaultValue(typeof(Color), "235, 235, 235"), Editor(typeof(MyColorEditor), typeof(UITypeEditor)), TypeConverter(typeof(MyColorConverter))]
-        public Color TextColor { get; set; }
+        public Color Color { get; set; }
 
         [DefaultValue(true)]
-        public bool DrawTextShadow { get; set; }
-
-        [DefaultValue(typeof(Color), "Black"), Editor(typeof(MyColorEditor), typeof(UITypeEditor)), TypeConverter(typeof(MyColorConverter))]
-        public Color TextShadowColor { get; set; }
-
-        [DefaultValue(typeof(Point), "-1, -1")]
-        public Point TextShadowOffset { get; set; }
-
-        private int cornerRadius;
-
-        [DefaultValue(4)]
-        public int CornerRadius
-        {
-            get
-            {
-                return cornerRadius;
-            }
-            set
-            {
-                cornerRadius = value.Max(0);
-            }
-        }
-
-        [DefaultValue(typeof(Padding), "5, 5, 5, 5")]
-        public Padding Padding { get; set; }
-
-        [DefaultValue(true)]
-        public bool DrawBorder { get; set; }
-
-        [DefaultValue(typeof(Color), "Black"), Editor(typeof(MyColorEditor), typeof(UITypeEditor)), TypeConverter(typeof(MyColorConverter))]
-        public Color BorderColor { get; set; }
-
-        [DefaultValue(1)]
-        public int BorderSize { get; set; }
-
-        [DefaultValue(true)]
-        public bool DrawBackground { get; set; }
-
-        [DefaultValue(typeof(Color), "42, 47, 56"), Editor(typeof(MyColorEditor), typeof(UITypeEditor)), TypeConverter(typeof(MyColorConverter))]
-        public Color BackgroundColor { get; set; }
-
-        [DefaultValue(false)]
         public bool UseGradient { get; set; }
 
-        [Editor(typeof(GradientEditor), typeof(UITypeEditor))]
         public GradientInfo Gradient { get; set; }
 
-        public DrawText()
+        [DefaultValue(false)]
+        public bool Outline { get; set; }
+
+        [DefaultValue(typeof(Color), "Black"), Editor(typeof(MyColorEditor), typeof(UITypeEditor)), TypeConverter(typeof(MyColorConverter))]
+        public Color OutlineColor { get; set; }
+
+        [DefaultValue(false)]
+        public bool OutlineUseGradient { get; set; }
+
+        public GradientInfo OutlineGradient { get; set; }
+
+        [DefaultValue(2)]
+        public int OutlineSize { get; set; }
+
+        [DefaultValue(false)]
+        public bool Shadow { get; set; }
+
+        [DefaultValue(typeof(Color), "Black"), Editor(typeof(MyColorEditor), typeof(UITypeEditor)), TypeConverter(typeof(MyColorConverter))]
+        public Color ShadowColor { get; set; }
+
+        [DefaultValue(false)]
+        public bool ShadowUseGradient { get; set; }
+
+        public GradientInfo ShadowGradient { get; set; }
+
+        [DefaultValue(typeof(Point), "2, 2")]
+        public Point ShadowOffset { get; set; }
+
+        public DrawTextEx()
         {
             this.ApplyDefaultPropertyValues();
-            AddDefaultGradient();
+            Gradient = AddDefaultGradient();
+            OutlineGradient = AddDefaultGradient();
+            ShadowGradient = AddDefaultGradient();
         }
 
-        private void AddDefaultGradient()
+        private GradientInfo AddDefaultGradient()
         {
-            Gradient = new GradientInfo();
-            Gradient.Colors.Add(new GradientStop(Color.FromArgb(68, 120, 194), 0f));
-            Gradient.Colors.Add(new GradientStop(Color.FromArgb(13, 58, 122), 50f));
-            Gradient.Colors.Add(new GradientStop(Color.FromArgb(6, 36, 78), 50f));
-            Gradient.Colors.Add(new GradientStop(Color.FromArgb(23, 89, 174), 100f));
+            GradientInfo gradientInfo = new GradientInfo();
+            gradientInfo.Type = LinearGradientMode.Horizontal;
+
+            switch (RandomFast.Next(0, 2))
+            {
+                case 0:
+                    gradientInfo.Colors.Add(new GradientStop(Color.FromArgb(0, 187, 138), 0f));
+                    gradientInfo.Colors.Add(new GradientStop(Color.FromArgb(0, 105, 163), 100f));
+                    break;
+                case 1:
+                    gradientInfo.Colors.Add(new GradientStop(Color.FromArgb(255, 3, 135), 0f));
+                    gradientInfo.Colors.Add(new GradientStop(Color.FromArgb(255, 143, 3), 100f));
+                    break;
+                case 2:
+                    gradientInfo.Colors.Add(new GradientStop(Color.FromArgb(184, 11, 195), 0f));
+                    gradientInfo.Colors.Add(new GradientStop(Color.FromArgb(98, 54, 255), 100f));
+                    break;
+            }
+
+            return gradientInfo;
         }
 
         public override Bitmap Apply(Bitmap bmp)
@@ -144,101 +147,174 @@ namespace ShareX.ImageEffectsLib
                 return bmp;
             }
 
-            using (Font textFont = TextFont)
+            using (Font font = Font)
             {
-                if (textFont == null || textFont.Size < 1)
+                if (font == null || font.Size < 1)
                 {
                     return bmp;
                 }
 
                 NameParser parser = new NameParser(NameParserType.Text);
+                parser.ImageWidth = bmp.Width;
+                parser.ImageHeight = bmp.Height;
 
-                if (bmp != null)
+                // Try to get TaskMetadata if available through Tag property
+                if (bmp.Tag is TaskMetadata metadata)
                 {
-                    parser.ImageWidth = bmp.Width;
-                    parser.ImageHeight = bmp.Height;
+                    try
+                    {
+                        parser.MouseX = metadata.GetValue<int>("MouseX");
+                        parser.MouseY = metadata.GetValue<int>("MouseY");
+                    }
+                    catch
+                    {
+                        // If metadata doesn't contain MouseX/MouseY, fallback to 0
+                        parser.MouseX = 0;
+                        parser.MouseY = 0;
+                    }
                 }
 
                 string parsedText = parser.Parse(Text);
 
-                Size textSize = Helpers.MeasureText(parsedText, textFont);
-                Size watermarkSize = new Size(Padding.Left + textSize.Width + Padding.Right, Padding.Top + textSize.Height + Padding.Bottom);
-                Point watermarkPosition = Helpers.GetPosition(Placement, Offset, bmp.Size, watermarkSize);
-                Rectangle watermarkRectangle = new Rectangle(watermarkPosition, watermarkSize);
-
-                if (AutoHide && !new Rectangle(0, 0, bmp.Width, bmp.Height).Contains(watermarkRectangle))
-                {
-                    return bmp;
-                }
-
                 using (Graphics g = Graphics.FromImage(bmp))
+                using (GraphicsPath gp = new GraphicsPath())
                 {
                     g.SmoothingMode = SmoothingMode.HighQuality;
+                    g.PixelOffsetMode = PixelOffsetMode.Half;
+                    g.TextRenderingHint = TextRenderingMode;
 
-                    using (GraphicsPath gp = new GraphicsPath())
+                    gp.FillMode = FillMode.Winding;
+                    float emSize = g.DpiY * font.SizeInPoints / 72;
+                    gp.AddString(parsedText, font.FontFamily, (int)font.Style, emSize, Point.Empty, StringFormat.GenericDefault);
+
+                    if (Angle != 0)
                     {
-                        gp.AddRoundedRectangleProper(watermarkRectangle, CornerRadius);
-
-                        if (DrawBackground)
+                        using (Matrix matrix = new Matrix())
                         {
-                            Brush backgroundBrush = null;
+                            matrix.Rotate(Angle);
+                            gp.Transform(matrix);
+                        }
+                    }
 
-                            try
+                    RectangleF pathRect = gp.GetBounds();
+
+                    if (pathRect.IsEmpty)
+                    {
+                        return bmp;
+                    }
+
+                    Size textSize = pathRect.Size.ToSize().Offset(1);
+                    Point textPosition = Helpers.GetPosition(Placement, Offset, bmp.Size, textSize);
+                    Rectangle textRectangle = new Rectangle(textPosition, textSize);
+
+                    if (AutoHide && !new Rectangle(0, 0, bmp.Width, bmp.Height).Contains(textRectangle))
+                    {
+                        return bmp;
+                    }
+
+                    using (Matrix matrix = new Matrix())
+                    {
+                        matrix.Translate(textRectangle.X - pathRect.X, textRectangle.Y - pathRect.Y);
+                        gp.Transform(matrix);
+                    }
+
+                    // Draw text shadow
+                    if (Shadow && ((!ShadowUseGradient && ShadowColor.A > 0) || (ShadowUseGradient && ShadowGradient.IsVisible)))
+                    {
+                        using (Matrix matrix = new Matrix())
+                        {
+                            matrix.Translate(ShadowOffset.X, ShadowOffset.Y);
+                            gp.Transform(matrix);
+
+                            if (Outline && OutlineSize > 0)
                             {
-                                if (UseGradient && Gradient != null && Gradient.IsValid)
+                                if (ShadowUseGradient)
                                 {
-                                    backgroundBrush = Gradient.GetGradientBrush(watermarkRectangle);
+                                    using (LinearGradientBrush textShadowBrush = ShadowGradient.GetGradientBrush(
+                                        Rectangle.Round(textRectangle).Offset(OutlineSize + 1).LocationOffset(ShadowOffset)))
+                                    using (Pen textShadowPen = new Pen(textShadowBrush, OutlineSize) { LineJoin = LineJoin.Round })
+                                    {
+                                        g.DrawPath(textShadowPen, gp);
+                                    }
                                 }
                                 else
                                 {
-                                    backgroundBrush = new SolidBrush(BackgroundColor);
+                                    using (Pen textShadowPen = new Pen(ShadowColor, OutlineSize) { LineJoin = LineJoin.Round })
+                                    {
+                                        g.DrawPath(textShadowPen, gp);
+                                    }
                                 }
-
-                                g.FillPath(backgroundBrush, gp);
                             }
-                            finally
+                            else
                             {
-                                if (backgroundBrush != null) backgroundBrush.Dispose();
+                                if (ShadowUseGradient)
+                                {
+                                    using (Brush textShadowBrush = ShadowGradient.GetGradientBrush(
+                                        Rectangle.Round(textRectangle).Offset(1).LocationOffset(ShadowOffset)))
+                                    {
+                                        g.FillPath(textShadowBrush, gp);
+                                    }
+                                }
+                                else
+                                {
+                                    using (Brush textShadowBrush = new SolidBrush(ShadowColor))
+                                    {
+                                        g.FillPath(textShadowBrush, gp);
+                                    }
+                                }
                             }
-                        }
 
-                        if (DrawBorder)
-                        {
-                            int borderSize = BorderSize.Max(1);
-
-                            if (borderSize.IsEvenNumber())
-                            {
-                                g.PixelOffsetMode = PixelOffsetMode.Half;
-                            }
-
-                            using (Pen borderPen = new Pen(BorderColor, borderSize))
-                            {
-                                g.DrawPath(borderPen, gp);
-                            }
-
-                            g.PixelOffsetMode = PixelOffsetMode.Default;
-                        }
-                    }
-
-                    g.TextRenderingHint = TextRenderingMode;
-
-                    if (DrawTextShadow)
-                    {
-                        using (Brush textShadowBrush = new SolidBrush(TextShadowColor))
-                        {
-                            g.DrawString(parsedText, textFont, textShadowBrush, watermarkRectangle.X + Padding.Left + TextShadowOffset.X,
-                                watermarkRectangle.Y + Padding.Top + TextShadowOffset.Y);
+                            matrix.Reset();
+                            matrix.Translate(-ShadowOffset.X, -ShadowOffset.Y);
+                            gp.Transform(matrix);
                         }
                     }
 
-                    using (Brush textBrush = new SolidBrush(TextColor))
+                    // Draw text outline
+                    if (Outline && OutlineSize > 0)
                     {
-                        g.DrawString(parsedText, textFont, textBrush, watermarkRectangle.X + Padding.Left, watermarkRectangle.Y + Padding.Top);
+                        if (OutlineUseGradient)
+                        {
+                            if (OutlineGradient.IsVisible)
+                            {
+                                using (LinearGradientBrush textOutlineBrush = OutlineGradient.GetGradientBrush(Rectangle.Round(textRectangle).Offset(OutlineSize + 1)))
+                                using (Pen textOutlinePen = new Pen(textOutlineBrush, OutlineSize) { LineJoin = LineJoin.Round })
+                                {
+                                    g.DrawPath(textOutlinePen, gp);
+                                }
+                            }
+                        }
+                        else if (OutlineColor.A > 0)
+                        {
+                            using (Pen textOutlinePen = new Pen(OutlineColor, OutlineSize) { LineJoin = LineJoin.Round })
+                            {
+                                g.DrawPath(textOutlinePen, gp);
+                            }
+                        }
+                    }
+
+                    // Draw text
+                    if (UseGradient)
+                    {
+                        if (Gradient.IsVisible)
+                        {
+                            using (Brush textBrush = Gradient.GetGradientBrush(Rectangle.Round(textRectangle).Offset(1)))
+                            {
+                                g.FillPath(textBrush, gp);
+                            }
+                        }
+                    }
+                    else if (Color.A > 0)
+                    {
+                        using (Brush textBrush = new SolidBrush(Color))
+                        {
+                            g.FillPath(textBrush, gp);
+                        }
                     }
                 }
-            }
 
-            return bmp;
+                return bmp;
+            }
         }
 
         protected override string GetSummary()
